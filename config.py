@@ -40,8 +40,8 @@ BROWSER_HEADLESS = HEADLESS
 def get_webdriver():
     """
     Creates and returns WebDriver for available browser.
-    Tries Chrome, then Firefox, then Chromium.
-    Supports headless mode.
+    Tries Chrome first, then Firefox if Chrome is unavailable.
+    Supports headless mode via HEADLESS environment variable.
     
     Returns:
         WebDriver: Configured WebDriver instance
@@ -78,10 +78,13 @@ def get_webdriver():
                     if os.path.exists(potential_driver):
                         driver_path = potential_driver
                     else:
-                        # Look in parent directory (max 2 levels up)
+                        # Look in parent directory (limited depth for efficiency)
                         parent_dir = os.path.dirname(base_dir)
                         found = False
                         for root, dirs, files in os.walk(parent_dir):
+                            # Limit search depth to 2 levels
+                            if root.count(os.sep) - parent_dir.count(os.sep) > 2:
+                                continue
                             for file in files:
                                 if file == 'chromedriver' and os.access(os.path.join(root, file), os.X_OK):
                                     driver_path = os.path.join(root, file)
@@ -120,8 +123,7 @@ def get_webdriver():
             options = webdriver.FirefoxOptions()
             if HEADLESS:
                 options.add_argument('--headless')
-            options.add_argument('--no-sandbox')
-            options.add_argument('--disable-dev-shm-usage')
+            # Set window size for Firefox
             options.add_argument(f'--width={BROWSER_WINDOW_SIZE[0]}')
             options.add_argument(f'--height={BROWSER_WINDOW_SIZE[1]}')
             

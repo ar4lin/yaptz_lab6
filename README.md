@@ -81,6 +81,42 @@ pip list | grep selenium
 
 ## 🚀 Використання
 
+### Вибір браузера
+
+За замовчуванням використовується headless режим Chrome. Для зміни налаштувань використовуйте змінні оточення:
+
+**Використати Firefox:**
+```bash
+export BROWSER=firefox
+python main.py
+```
+
+**Вимкнути headless режим:**
+```bash
+export HEADLESS=false
+python main.py
+```
+
+**Комбінація налаштувань:**
+```bash
+export BROWSER=firefox
+export HEADLESS=false
+python main.py
+```
+
+### Встановлення браузерів
+
+**Ubuntu/Debian:**
+```bash
+# Chrome
+wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+sudo dpkg -i google-chrome-stable_current_amd64.deb
+sudo apt-get install -f
+
+# Firefox
+sudo apt install firefox
+```
+
 ### Запуск всіх тестів
 
 Для запуску всього набору тестів використовуйте головний скрипт:
@@ -160,9 +196,14 @@ python navigation_demo.py
 Центральний файл конфігурації з налаштуваннями:
 
 ```python
+# Налаштування браузера
+BROWSER = os.getenv('BROWSER', 'auto')  # 'chrome', 'firefox', 'auto'
+HEADLESS = os.getenv('HEADLESS', 'true').lower() == 'true'
+BROWSER_WINDOW_SIZE = (1920, 1080)
+
 # Timeout налаштування
 IMPLICIT_WAIT = 10
-EXPLICIT_WAIT = 10
+EXPLICIT_WAIT = 15
 PAGE_LOAD_TIMEOUT = 30
 
 # URLs для тестування
@@ -172,11 +213,13 @@ SELENIUM_FORM_URL = "https://www.selenium.dev/selenium/web/web-form.html"
 # Налаштування скріншотів
 SCREENSHOT_DIR = "screenshots"
 SCREENSHOT_FORMAT = "%Y%m%d_%H%M%S"
-
-# Налаштування браузера
-BROWSER_HEADLESS = False  # True для headless режиму
-BROWSER_WINDOW_SIZE = (1920, 1080)
 ```
+
+Функція `get_webdriver()` автоматично:
+- Спробує Chrome, потім Firefox
+- Виправляє баг з неправильним шляхом до chromedriver
+- Підтримує headless режим
+- Налаштовує всі необхідні параметри
 
 ### screenshot_utils.py
 

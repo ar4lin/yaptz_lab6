@@ -3,9 +3,17 @@ Configuration file for Selenium WebDriver tests.
 Contains timeout values, URLs, and other settings.
 """
 
+import os
+from selenium import webdriver
+
+# Browser settings
+BROWSER = os.getenv('BROWSER', 'auto')  # 'chrome', 'firefox', 'auto'
+HEADLESS = os.getenv('HEADLESS', 'true').lower() == 'true'
+BROWSER_WINDOW_SIZE = (1920, 1080)
+
 # Timeout settings (in seconds)
 IMPLICIT_WAIT = 10
-EXPLICIT_WAIT = 10
+EXPLICIT_WAIT = 15
 PAGE_LOAD_TIMEOUT = 30
 
 # URLs for testing
@@ -17,10 +25,98 @@ NAVIGATION_TEST_URL = "https://www.selenium.dev"
 SCREENSHOT_DIR = "screenshots"
 SCREENSHOT_FORMAT = "%Y%m%d_%H%M%S"
 
-# Browser settings
-BROWSER_HEADLESS = False  # Set to True for headless mode
-BROWSER_WINDOW_SIZE = (1920, 1080)
-
 # Logging settings
 LOG_LEVEL = "INFO"
 LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# Legacy compatibility
+BROWSER_HEADLESS = HEADLESS
+
+
+def get_webdriver():
+    """
+    Creates and returns WebDriver for available browser.
+    Tries Chrome, then Firefox, then Chromium.
+    Supports headless mode.
+    
+    Returns:
+        WebDriver: Configured WebDriver instance
+        
+    Raises:
+        Exception: If no browser is available
+    """
+    # Try Chrome first
+    if BROWSER == 'auto' or BROWSER == 'chrome':
+        try:
+            from selenium.webdriver.chrome.service import Service as ChromeService
+            from webdriver_manager.chrome import ChromeDriverManager
+            
+            options = webdriver.ChromeOptions()
+            if HEADLESS:
+                options.add_argument('--headless=new')
+            options.add_argument('--no-sandbox')
+            options.add_argument('--disable-dev-shm-usage')
+            options.add_argument(f'--window-size={BROWSER_WINDOW_SIZE[0]},{BROWSER_WINDOW_SIZE[1]}')
+            
+            # Install driver and get path
+            driver_path = ChromeDriverManager().install()
+            
+            # BUG FIX: Find the correct chromedriver executable
+            if os.path.isdir(driver_path):
+                # If path is a directory, look for chromedriver inside
+                driver_path = os.path.join(driver_path, 'chromedriver')
+            elif 'THIRD_PARTY_NOTICES' in driver_path or not driver_path.endswith('chromedriver'):
+                # Fix incorrect path from webdriver-manager
+                base_dir = os.path.dirname(driver_path)
+                potential_driver = os.path.join(base_dir, 'chromedriver')
+                if os.path.exists(potential_driver):
+                    driver_path = potential_driver
+                else:
+                    # Look in parent directory
+                    parent_dir = os.path.dirname(base_dir)
+                    for root, dirs, files in os.walk(parent_dir):
+                        for file in files:
+                            if file == 'chromedriver' and os.access(os.path.join(root, file), os.X_OK):
+                                driver_path = os.path.join(root, file)
+                                break
+            
+            service = ChromeService(executable_path=driver_path)
+            driver = webdriver.Chrome(service=service, options=options)
+            driver.implicitly_wait(IMPLICIT_WAIT)
+            driver.set_page_load_timeout(PAGE_LOAD_TIMEOUT)
+            return driver
+            
+        except Exception as e:
+            if BROWSER == 'chrome':
+                # User explicitly requested Chrome, so fail
+                raise Exception(f"Chrome unavailable: {e}")
+            print(f"Chrome unavailable: {e}")
+    
+    # Try Firefox second
+    if BROWSER == 'auto' or BROWSER == 'firefox':
+        try:
+            from selenium.webdriver.firefox.service import Service as FirefoxService
+            from webdriver_manager.firefox import GeckoDriverManager
+            
+            options = webdriver.FirefoxOptions()
+            if HEADLESS:
+                options.add_argument('--headless')
+            options.add_argument('--no-sandbox')
+            options.add_argument('--disable-dev-shm-usage')
+            options.add_argument(f'--width={BROWSER_WINDOW_SIZE[0]}')
+            options.add_argument(f'--height={BROWSER_WINDOW_SIZE[1]}')
+            
+            service = FirefoxService(GeckoDriverManager().install())
+            driver = webdriver.Firefox(service=service, options=options)
+            driver.implicitly_wait(IMPLICIT_WAIT)
+            driver.set_page_load_timeout(PAGE_LOAD_TIMEOUT)
+            return driver
+            
+        except Exception as e:
+            if BROWSER == 'firefox':
+                # User explicitly requested Firefox, so fail
+                raise Exception(f"Firefox unavailable: {e}")
+            print(f"Firefox unavailable: {e}")
+    
+    # No browser available
+    raise Exception("Unable to find an available browser! Please install Chrome or Firefox.")

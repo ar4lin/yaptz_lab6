@@ -49,7 +49,6 @@ def get_webdriver():
     if BROWSER == 'auto' or BROWSER == 'chrome':
         try:
             from selenium.webdriver.chrome.service import Service as ChromeService
-            from webdriver_manager.chrome import ChromeDriverManager
             
             options = webdriver.ChromeOptions()
             if HEADLESS:
@@ -58,29 +57,42 @@ def get_webdriver():
             options.add_argument('--disable-dev-shm-usage')
             options.add_argument(f'--window-size={BROWSER_WINDOW_SIZE[0]},{BROWSER_WINDOW_SIZE[1]}')
             
-            # Install driver and get path
-            driver_path = ChromeDriverManager().install()
+            # Try to use webdriver-manager first, fall back to system driver
+            driver_path = None
+            try:
+                from webdriver_manager.chrome import ChromeDriverManager
+                driver_path = ChromeDriverManager().install()
+                
+                # BUG FIX: Find the correct chromedriver executable
+                if os.path.isdir(driver_path):
+                    # If path is a directory, look for chromedriver inside
+                    driver_path = os.path.join(driver_path, 'chromedriver')
+                elif 'THIRD_PARTY_NOTICES' in driver_path or not driver_path.endswith('chromedriver'):
+                    # Fix incorrect path from webdriver-manager
+                    base_dir = os.path.dirname(driver_path)
+                    potential_driver = os.path.join(base_dir, 'chromedriver')
+                    if os.path.exists(potential_driver):
+                        driver_path = potential_driver
+                    else:
+                        # Look in parent directory
+                        parent_dir = os.path.dirname(base_dir)
+                        for root, dirs, files in os.walk(parent_dir):
+                            for file in files:
+                                if file == 'chromedriver' and os.access(os.path.join(root, file), os.X_OK):
+                                    driver_path = os.path.join(root, file)
+                                    break
+            except Exception as wdm_error:
+                # Webdriver-manager failed, try system chromedriver
+                print(f"Webdriver-manager failed: {wdm_error}")
+                driver_path = None
             
-            # BUG FIX: Find the correct chromedriver executable
-            if os.path.isdir(driver_path):
-                # If path is a directory, look for chromedriver inside
-                driver_path = os.path.join(driver_path, 'chromedriver')
-            elif 'THIRD_PARTY_NOTICES' in driver_path or not driver_path.endswith('chromedriver'):
-                # Fix incorrect path from webdriver-manager
-                base_dir = os.path.dirname(driver_path)
-                potential_driver = os.path.join(base_dir, 'chromedriver')
-                if os.path.exists(potential_driver):
-                    driver_path = potential_driver
-                else:
-                    # Look in parent directory
-                    parent_dir = os.path.dirname(base_dir)
-                    for root, dirs, files in os.walk(parent_dir):
-                        for file in files:
-                            if file == 'chromedriver' and os.access(os.path.join(root, file), os.X_OK):
-                                driver_path = os.path.join(root, file)
-                                break
+            # Create service with driver path (None means use system PATH)
+            if driver_path and os.path.exists(driver_path):
+                service = ChromeService(executable_path=driver_path)
+            else:
+                # Use system chromedriver from PATH
+                service = ChromeService()
             
-            service = ChromeService(executable_path=driver_path)
             driver = webdriver.Chrome(service=service, options=options)
             driver.implicitly_wait(IMPLICIT_WAIT)
             driver.set_page_load_timeout(PAGE_LOAD_TIMEOUT)
@@ -96,7 +108,6 @@ def get_webdriver():
     if BROWSER == 'auto' or BROWSER == 'firefox':
         try:
             from selenium.webdriver.firefox.service import Service as FirefoxService
-            from webdriver_manager.firefox import GeckoDriverManager
             
             options = webdriver.FirefoxOptions()
             if HEADLESS:
@@ -106,7 +117,23 @@ def get_webdriver():
             options.add_argument(f'--width={BROWSER_WINDOW_SIZE[0]}')
             options.add_argument(f'--height={BROWSER_WINDOW_SIZE[1]}')
             
-            service = FirefoxService(GeckoDriverManager().install())
+            # Try to use webdriver-manager first, fall back to system driver
+            driver_path = None
+            try:
+                from webdriver_manager.firefox import GeckoDriverManager
+                driver_path = GeckoDriverManager().install()
+            except Exception as wdm_error:
+                # Webdriver-manager failed, try system geckodriver
+                print(f"Webdriver-manager failed: {wdm_error}")
+                driver_path = None
+            
+            # Create service with driver path (None means use system PATH)
+            if driver_path and os.path.exists(driver_path):
+                service = FirefoxService(executable_path=driver_path)
+            else:
+                # Use system geckodriver from PATH
+                service = FirefoxService()
+            
             driver = webdriver.Firefox(service=service, options=options)
             driver.implicitly_wait(IMPLICIT_WAIT)
             driver.set_page_load_timeout(PAGE_LOAD_TIMEOUT)

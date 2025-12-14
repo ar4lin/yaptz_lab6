@@ -67,10 +67,12 @@ def demonstrate_basic_navigation(driver):
         # Try to find a link to navigate to
         links = driver.find_elements(By.CSS_SELECTOR, "a[href]")
         if links:
-            # Filter for internal links
-            internal_links = [link for link in links if link.get_attribute("href") and 
-                            config.NAVIGATION_TEST_URL in link.get_attribute("href") and
-                            link.get_attribute("href") != first_url]
+            # Filter for internal links - cache href to avoid repeated DOM queries
+            internal_links = []
+            for link in links:
+                href = link.get_attribute("href")
+                if href and config.NAVIGATION_TEST_URL in href and href != first_url:
+                    internal_links.append(link)
             
             if internal_links:
                 link = internal_links[0]

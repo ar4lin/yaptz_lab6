@@ -223,8 +223,11 @@ def compare_selector_performance(driver):
     # Test CSS ID selector performance
     start_time = time.time()
     try:
-        for _ in range(10):
-            driver.find_element(By.CSS_SELECTOR, "#my-text-id")
+        for i in range(10):
+            element = driver.find_element(By.CSS_SELECTOR, "#my-text-id")
+            # Simulate realistic usage by checking element properties
+            _ = element.is_displayed()
+            time.sleep(0.01)  # Small delay to simulate real interaction
         css_id_time = (time.time() - start_time) * 1000
         print(f"CSS ID selector (10 iterations): {css_id_time:.2f}ms")
     except Exception as e:
@@ -233,8 +236,11 @@ def compare_selector_performance(driver):
     # Test XPath ID selector performance
     start_time = time.time()
     try:
-        for _ in range(10):
-            driver.find_element(By.XPATH, "//*[@id='my-text-id']")
+        for i in range(10):
+            element = driver.find_element(By.XPATH, "//*[@id='my-text-id']")
+            # Simulate realistic usage by checking element properties
+            _ = element.is_displayed()
+            time.sleep(0.01)  # Small delay to simulate real interaction
         xpath_id_time = (time.time() - start_time) * 1000
         print(f"XPath ID selector (10 iterations): {xpath_id_time:.2f}ms")
     except Exception as e:
@@ -243,8 +249,11 @@ def compare_selector_performance(driver):
     # Test CSS class selector performance
     start_time = time.time()
     try:
-        for _ in range(10):
-            driver.find_elements(By.CSS_SELECTOR, ".form-label")
+        for i in range(10):
+            elements = driver.find_elements(By.CSS_SELECTOR, ".form-label")
+            # Simulate realistic usage by checking element count
+            _ = len(elements)
+            time.sleep(0.01)  # Small delay to simulate real interaction
         css_class_time = (time.time() - start_time) * 1000
         print(f"CSS class selector (10 iterations): {css_class_time:.2f}ms")
     except Exception as e:
@@ -253,8 +262,11 @@ def compare_selector_performance(driver):
     # Test XPath class selector performance
     start_time = time.time()
     try:
-        for _ in range(10):
-            driver.find_elements(By.XPATH, "//label[contains(@class, 'form-label')]")
+        for i in range(10):
+            elements = driver.find_elements(By.XPATH, "//label[contains(@class, 'form-label')]")
+            # Simulate realistic usage by checking element count
+            _ = len(elements)
+            time.sleep(0.01)  # Small delay to simulate real interaction
         xpath_class_time = (time.time() - start_time) * 1000
         print(f"XPath class selector (10 iterations): {xpath_class_time:.2f}ms")
     except Exception as e:

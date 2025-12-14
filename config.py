@@ -4,7 +4,11 @@ Contains timeout values, URLs, and other settings.
 """
 
 import os
+import logging
 from selenium import webdriver
+
+# Configure logging for this module
+logger = logging.getLogger(__name__)
 
 # Browser settings
 BROWSER = os.getenv('BROWSER', 'auto')  # 'chrome', 'firefox', 'auto'
@@ -74,16 +78,20 @@ def get_webdriver():
                     if os.path.exists(potential_driver):
                         driver_path = potential_driver
                     else:
-                        # Look in parent directory
+                        # Look in parent directory (max 2 levels up)
                         parent_dir = os.path.dirname(base_dir)
+                        found = False
                         for root, dirs, files in os.walk(parent_dir):
                             for file in files:
                                 if file == 'chromedriver' and os.access(os.path.join(root, file), os.X_OK):
                                     driver_path = os.path.join(root, file)
+                                    found = True
                                     break
+                            if found:
+                                break
             except Exception as wdm_error:
                 # Webdriver-manager failed, try system chromedriver
-                print(f"Webdriver-manager failed: {wdm_error}")
+                logger.warning(f"Webdriver-manager failed: {wdm_error}")
                 driver_path = None
             
             # Create service with driver path (None means use system PATH)
@@ -101,8 +109,8 @@ def get_webdriver():
         except Exception as e:
             if BROWSER == 'chrome':
                 # User explicitly requested Chrome, so fail
-                raise Exception(f"Chrome unavailable: {e}")
-            print(f"Chrome unavailable: {e}")
+                raise Exception(f"Chrome unavailable: {e}") from e
+            logger.info(f"Chrome unavailable: {e}")
     
     # Try Firefox second
     if BROWSER == 'auto' or BROWSER == 'firefox':
@@ -124,7 +132,7 @@ def get_webdriver():
                 driver_path = GeckoDriverManager().install()
             except Exception as wdm_error:
                 # Webdriver-manager failed, try system geckodriver
-                print(f"Webdriver-manager failed: {wdm_error}")
+                logger.warning(f"Webdriver-manager failed: {wdm_error}")
                 driver_path = None
             
             # Create service with driver path (None means use system PATH)
@@ -142,8 +150,8 @@ def get_webdriver():
         except Exception as e:
             if BROWSER == 'firefox':
                 # User explicitly requested Firefox, so fail
-                raise Exception(f"Firefox unavailable: {e}")
-            print(f"Firefox unavailable: {e}")
+                raise Exception(f"Firefox unavailable: {e}") from e
+            logger.info(f"Firefox unavailable: {e}")
     
     # No browser available
     raise Exception("Unable to find an available browser! Please install Chrome or Firefox.")

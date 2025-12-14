@@ -4,42 +4,17 @@ Demonstrates automated form filling using Selenium WebDriver.
 """
 
 import logging
-from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.select import Select
 from selenium.common.exceptions import TimeoutException
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.service import Service
 import config
 import screenshot_utils
 
 # Configure logging
 logging.basicConfig(level=config.LOG_LEVEL, format=config.LOG_FORMAT)
 logger = logging.getLogger(__name__)
-
-
-def setup_driver():
-    """
-    Set up and configure Chrome WebDriver with appropriate options.
-    
-    Returns:
-        WebDriver: Configured Chrome WebDriver instance
-    """
-    options = webdriver.ChromeOptions()
-    if config.BROWSER_HEADLESS:
-        options.add_argument('--headless')
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-dev-shm-usage')
-    options.add_argument(f'--window-size={config.BROWSER_WINDOW_SIZE[0]},{config.BROWSER_WINDOW_SIZE[1]}')
-    
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=options)
-    driver.implicitly_wait(config.IMPLICIT_WAIT)
-    driver.set_page_load_timeout(config.PAGE_LOAD_TIMEOUT)
-    
-    return driver
 
 
 def form_automation():
@@ -54,7 +29,7 @@ def form_automation():
         logger.info("Starting Form Automation...")
         
         # Step 1: Setup driver
-        driver = setup_driver()
+        driver = config.get_webdriver()
         logger.info("WebDriver initialized successfully")
         
         # Step 2: Navigate to form

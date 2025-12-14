@@ -15,6 +15,34 @@ import form_automation
 import selectors_demo
 import navigation_demo
 
+
+def check_browser_availability():
+    """
+    Checks browser availability before running tests.
+    
+    Returns:
+        bool: True if browser is available, False otherwise
+    """
+    print("\n" + "="*80)
+    print("Checking browser availability...")
+    print("="*80)
+    
+    try:
+        driver = config.get_webdriver()
+        driver.quit()
+        print("✓ Browser successfully initialized!")
+        return True
+    except Exception as e:
+        print(f"✗ Browser initialization failed: {e}")
+        print("\nPlease install Chrome or Firefox:")
+        print("  Ubuntu/Debian:")
+        print("    Chrome: sudo apt install google-chrome-stable")
+        print("    Firefox: sudo apt install firefox")
+        print("\n  You can also set environment variables:")
+        print("    BROWSER=firefox  (to explicitly use Firefox)")
+        print("    HEADLESS=false   (to disable headless mode)")
+        return False
+
 # Configure logging
 logging.basicConfig(
     level=config.LOG_LEVEL,
@@ -185,6 +213,10 @@ def main():
         int: Exit code (0 for success, 1 for failure)
     """
     try:
+        # Check browser availability first
+        if not check_browser_availability():
+            sys.exit(1)
+        
         # Create and run test suite
         runner = TestRunner()
         all_passed = runner.run_all_tests()
